@@ -11,7 +11,45 @@ void setup() {
   pinMode(switchStart, INPUT_PULLUP);
 }
 
+
+int state = 0;
+
 void loop() {
+
+  switch(state){
+    case(0):
+      readSwitch(); //read the switch for what to do initially
+      break;
+     case(1):
+      readSolarPanel(); //Read the panel to get the path to follow
+      break;
+     case(2):
+      displayPath();
+      break;
+     case(3):
+      goToPosition(path); // Go either north or south based on path
+      break;
+     case(4):
+      readSensors(); //Get the values from each sensor and readjust motion path to line up with the button
+      break;
+     case(5):
+      drive(); //Drive towards the button (as determined by case 4)
+      break;
+     case(6):
+      ramButton(); //When aligned with the button, drive forward to activate it
+      break;
+     case(7):
+      moveToMiddle(); //Move robot back towards the middle of the boat
+      break;
+     case(8):
+      readSensors(); // get values and readjust motion path to get to the middle
+      break;
+     case(9):
+      moveRight();  //move down the ramp
+      break;
+     case(10):      
+            
+  }
   int switchState = switchState();
 
   int path = readSolarPanel();
