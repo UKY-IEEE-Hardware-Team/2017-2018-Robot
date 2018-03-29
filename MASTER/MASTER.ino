@@ -35,6 +35,7 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(switchStop, INPUT_PULLUP);
   pinMode(switchStart, INPUT_PULLUP);
+  lcd.begin(16, 2);
 }
 
 float sensorReadings[12];
@@ -344,7 +345,8 @@ void loop() {
 
 int switchState()
 {
-lcd.setCursor(0, 0);
+  lcd.clear();
+  lcd.home();
   if (!(digitalRead(switchStop)))
     lcd.print("STOP");
   else if (!(digitalRead(switchStart)))
@@ -352,17 +354,20 @@ lcd.setCursor(0, 0);
   else
     lcd.print("STANDBUYNOW");
   delay(100);
-  lcd.clear();
-}
-
-int readSolarPanel()
-{
-  
 }
 
 void writePathLCD(int path)
 {
-  
+  lcd.clear();
+  lcd.home();
+  if (path == -1){
+    lcd.print("Scanning");
+  } else if (path == -2) {
+    lcd.print("Waiting");
+  } else {
+    lcd.print("Path: ");
+    lcd.print(path);
+  }
 }
 
 void drive(double Direction, double Speed)
