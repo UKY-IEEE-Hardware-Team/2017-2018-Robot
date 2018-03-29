@@ -40,12 +40,72 @@ void setup() {
 float sensorReadings[12];
 Sensor sensors[12]; //Make this class later
 
+void readSwitch()
+{
+  if (!(digitalRead(switchStop)))
+    state = 0; //Do nothing
+  else if (!(digitalRead(switchStart)))
+    state = 1;
+  else
+    state = 0; //Do nothing
+}
+
 
 
 void readSensors(){
   for(int x = 0; x < 12; x++){
     sensorReadings[x] = sensors[x].read();
   }
+}
+
+void drive(int direction1)
+{
+  switch(direction1) //Uses functions from Robot_turning
+  {
+    case(0):
+    forward();
+    break;
+    case(1):
+    frontrightstrafe();
+    break;
+    case(2):
+    right();
+    break;
+    case(3):
+    backrightstrafe();
+    break;
+    case(4):
+    backwards();
+    break;
+    case(5):
+    backleftstrafe();
+    break;
+    case(6):
+    left();
+    break;
+    case(7):
+    frontleftstrafe();
+    break;
+    case(8):
+    clockwise();
+    break;
+    case(9):
+    counterclockwise();
+    break;
+  }
+}
+
+int switchState()
+{
+lcd.setCursor(0, 0);
+  if (!(digitalRead(switchStop)))
+    lcd.print("STOP");
+  else if (!(digitalRead(switchStart)))
+    lcd.print("START");
+  else
+    lcd.print("STANDBUYNOW");
+  delay(100);
+  lcd.clear();
 }
 
 int setDirection() {
@@ -75,7 +135,71 @@ int setDirection() {
 
 
 
+int readSolarPanel()
+{
+  const int irPin = 2;          // Pin for Solar Panel
+  const int threshold = 25;     // Vertical threshold for IR signal
+  const int horzThresh = 15;    // I have no idea what number this was supposed to be. It should be a number between the two possible edgeDistances.
+  const int sampleLength = 500; // Takes 500 samples       
+  bool vals[sampleLength];      // Array for input
+  int edgeList[10];             // Starting time of each of the bits
+  int pulseCount = 0;           // Number of rising edges detected. This number won't count the first one.
+  bool bitVal;                  // The value of the bit read.
+  int outVal = 0;
 
+  unsigned long startTime = millis();
+  const unsigned long timeWait = 200; // Changed according to rules, MAY BREAK CODE
+
+  // Wait for IR reading to exceed threshold or time to exceed time threshold
+  while (analogRead(irPin) <= threshold && millis() - startTime <= timeWait);
+  
+  if (millis() - startTime > timeWait) // If wait is too long, time out and return -1
+  {
+    return -1;
+  }
+
+  // Read IR data, threshold, and put into array
+  for (int i = 0; i < sampleLength; i++)
+  {
+    vals[i] = analogRead(irPin) > threshold;
+  }
+
+  // Pulse Counter
+  pulseCount = 0;
+  // Iterate over IR data array. Start at index 1, not index 0 to ignore first rising edge.
+  for (int i = 1; i < sampleLength; i++)
+  {
+    if (vals[i] > vals[i - 1]) // Detect a rising edge
+    {
+      // Register rising edge as a pulse
+      pulseCount++;
+      // Store sample number of pulse into edgeList
+      edgeList[pulseCount] = i;
+    }
+  }
+
+  if (pulseCount != 9) // Return -1 if wrong number of pulses detected
+  {
+    return -1;
+  }
+  for (int k = 1; k < 6; k++) // If any of the first five of eight bits read as one, it is in the waiting state
+  {
+    if (edgeList[k + 1] - edgeList[k] >= horzThresh) 
+    {
+      return -2;
+    }
+  }
+
+  // Iterate over the 3 bits in edgeList
+  for (int k = 6; k < 9; k++)
+  {
+    // Measure number of samples between rising edges, threshold, and store bit value
+    bitVal = edgeList[k + 1] - edgeList[k] >= horzThresh;
+    // Write bit value to outVal int
+    bitWrite(outVal, (2 - k) + 6, bitVal);
+  }
+  return outVal;
+}
 
 void loop() {
 
@@ -250,4 +374,6 @@ double readSensorDistance()
 {
   
 }
+
+
 
