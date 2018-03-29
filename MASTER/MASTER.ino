@@ -92,6 +92,9 @@ void drive(int direction1)
     case(9):
     counterclockwise();
     break;
+    case(10):
+    stopMoving();
+    break;
   }
 }
 
@@ -132,8 +135,91 @@ int setDirection() {
   }
 }
 
+void goToPosition()
+{
+  if (direction == 90.0) // If button needed to push is the top one
+  {
+    drive(2); // Go to the right
 
+    bool closeEnough
+    while (!closeEnough)
+    {
+      float distanceToWall = readSensors(); // Determine the distance to the wall
+      if (distanceToWall <= 5.0) // If the distance to wall is less than the distance we want to stop at
+      {
+        closeEnough = true; 
+      }
+    }
+    drive(10); // Stop 
+  }
+  else if (direction == -90.0) // If button needed to push is the bottom one
+  {
+    drive(6); // Go to the left
 
+    bool closeEnough
+    while (!closeEnough)
+    {
+      float distanceToWall = readSensors(); // Determine the distance to the wall
+      if (distanceToWall <= 5.0) // If the distance to wall is less than the distance we want to stop at
+      {
+        closeEnough = true; 
+      }
+    }
+    drive(10); // Stop 
+  }
+}
+
+void moveToMiddle()
+{
+  if (direction == 90.0) // If button pushed is the top one
+  {
+    drive(6); // Go to the left
+
+    bool closeEnough
+    while (!closeEnough)
+    {
+      float distanceToMiddle = readSensors(); // Determine the distance to the middle
+      if (distanceToMiddle <= 0.1) // If the distance to the middle is less than the distance we want to stop at
+      {
+        closeEnough = true; 
+      }
+    }
+    drive(10); // Stop 
+  }
+  else if (direction == -90.0) // If button pushed is the bottom one
+  {
+    drive(2); // Go to the right
+
+    bool closeEnough
+    while (!closeEnough)
+    {
+      float distanceToMiddle = readSensors(); // Determine the distance to the middle
+      if (distanceToMiddle <= 0.1) // If the distance to the middle is less than the distance we want to stop at
+      {
+        closeEnough = true; 
+      }
+    }
+    drive(10); // Stop 
+  }
+}
+
+void moveDownRamp()
+{
+  drive(0); // Go forward
+
+    bool closeEnough
+    while (!closeEnough)
+    {
+      float distanceToDownRamp = readSensors(); // Determine the distance to down off the ramp
+      if (distanceToDownRamp <= 0.1) // If the distance to the down off the ramp is less than the distance we want to stop at
+      {
+        closeEnough = true; 
+      }
+    }
+    drive(10); // Stop 
+  }
+  
+}
 
 int readSolarPanel()
 {
@@ -201,6 +287,7 @@ int readSolarPanel()
   return outVal;
 }
 
+
 void loop() {
 
   switch(state){
@@ -232,7 +319,7 @@ void loop() {
       readSensors(); // get values and readjust motion path to get to the middle
       break;
      case(9):
-      moveRight();  //move down the ramp
+      moveDownRamp();  //move down the ramp
       break;
      case(10):
       readSensors(); //Get our location in the map
