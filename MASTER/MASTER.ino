@@ -1,11 +1,28 @@
 // MASTER FILE
 #include <LiquidCrystal.h>
 
-LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
-const int switchStop = 34;
-const int switchStart = 35;
+#define FRONT_LEFT  0
+#define LEFT_RIGHT  1
+#define LEFT_LEFT   2
+#define BACK_RIGHT  3
+#define BACK_LEFT   4
+#define RIGHT_RIGHT 5
+#define RIGHT_LEFT  6
+#define FRONT_RIGHT 7 
+
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);  // Initialize LCD
+
+const int switchStop =  0;    // Pin for Switch Stop
+const int switchStart = 1;   // Pin for Switch Start
+
+const int irPin = 2;          // Pin for Solar Panel
+
+const int trigPin[8] = {22, 24, 26, 28, 30, 32, 34, 36}; // Pins for Ultrasonic Trigger
+const int echoPin[8] = {23, 25, 27, 29, 31, 33, 35, 37}; // Pins for Ultrasoinc Echo
 
 double orientation = 0;
+
+
 
 
 
@@ -33,9 +50,13 @@ float direction = 0;
 
 void setup() {
   // put your setup code here, to run once:
-  pinMode(switchStop, INPUT_PULLUP);
-  pinMode(switchStart, INPUT_PULLUP);
-  lcd.begin(16, 2);
+  pinMode(switchStop, INPUT_PULLUP);  // Initialize Switch Stop
+  pinMode(switchStart, INPUT_PULLUP); // Initialize Switch Start
+  lcd.begin(16, 2);                   // Initialize LCD
+  for (int i = 0; i < 8; i++) {
+    pinMode(trigPin[i], OUTPUT);      // Initialize 8 Trig Pins
+    pinMode(echoPin[i], INPUT);       // Initialize 8 Echo Pins
+  }
 }
 
 float sensorReadings[12];
@@ -138,7 +159,6 @@ int setDirection() {
 
 int readSolarPanel()
 {
-  const int irPin = 2;          // Pin for Solar Panel
   const int threshold = 25;     // Vertical threshold for IR signal
   const int horzThresh = 15;    // I have no idea what number this was supposed to be. It should be a number between the two possible edgeDistances.
   const int sampleLength = 500; // Takes 500 samples       
@@ -375,9 +395,41 @@ void drive(double Direction, double Speed)
 
 }
 
-double readSensorDistance()
+double readSensorDistance(int sensorNumber) // return inches from ultrasonic
 {
-  
+  const long inchThreshold = 75.0;  // Maximum inch reading
+  const long betweenThresh = 3.0;   // Maximum difference from last reading 
+  long duration;                    // Used for distance measurement
+  long distanceInch;                // Distance in Inches
+  long distanceAve;                 // Average distance in Inches
+  // int prevInch;                  // Previous reading
+  for (int i = 0; i < 4; i++) {
+    digitalWrite(trigPin[sensorNumber], LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin[sensorNumber], HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin[sensorNumber], LOW);
+    duration = pulseIn(echoPin[sensorNumber], HIGH);
+    distanceInch = duration*0.0133/2;
+    if (distanceInch < inchThreshold /*&& abs(distanceInch - prevInch) < betweenThresh */){ // Average of 4, if amount exceeds thresholds, ignore it before it gets averaged.
+      if (i == 3){
+        distanceAve = distanceAve + distanceInch;
+        distanceAve = distanceAve / 4; 
+        Serial.print("Distance: ");
+        Serial.print(distanceAve);
+        Serial.println(" inch");
+      } else {
+        distanceAve = distanceAve + distanceInch;
+      }
+      // prevInch = distanceInch;
+    } else {
+      Serial.println("Ignored Reading");
+      i = i - 1;
+    }
+
+    delay(60);
+  }
+  return distanceAve;
 }
 
 
