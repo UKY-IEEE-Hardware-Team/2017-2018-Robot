@@ -1,6 +1,16 @@
 // MASTER FILE
 #include <LiquidCrystal.h>
 #include <Stepper.h>
+#include <Servo.h>
+
+#define FRONT_LEFT  0
+#define LEFT_RIGHT  1
+#define LEFT_LEFT   2
+#define BACK_RIGHT  3
+#define BACK_LEFT   4
+#define RIGHT_RIGHT 5
+#define RIGHT_LEFT  6
+#define FRONT_RIGHT 7
 
 const int stepsPerRevolution = 2048;  
 //The pin connections need to be 4 pins connected
@@ -12,38 +22,37 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 const int switchStop = 34;
 const int switchStart = 35;
 
+const int irPin = 2;          // Pin for Solar Panel
+
+const int trigPin[8] = {22, 24, 26, 28, 30, 32, 34, 36}; // Pins for Ultrasonic Trigger
+const int echoPin[8] = {23, 25, 27, 29, 31, 33, 35, 37}; // Pins for Ultrasoinc Echo
+
 double orientation = 0;
 
 int path = 0;
 int bit = 2;
 
-class Sensor{
-  void read();
-};
-
-class UltraSonic extends Sensor{
-
-  UltraSonicSensorName sensor;
-  void read();
-};
-
-class Sharp extends Sensor{
-  SharpSensorName sensor;
-  void read();
-};
-
-
 int state = 0;
-float direction = 0;
+double direction = 0;
+
+Servo backleft;
+Servo backright;
+Servo frontright;
+Servo frontleft;
 
 void setup() {
   // put your setup code here, to run once:
   pinMode(switchStop, INPUT_PULLUP);
   pinMode(switchStart, INPUT_PULLUP);
+
+  // Attach servos for driving
+  backright.attach(46);
+  backleft.attach(25);  
+  frontright.attach(45);
+  frontleft.attach(19);
+
 }
 
-float sensorReadings[12];
-Sensor sensors[12]; //Make this class later
 
 void readSwitch()
 {
@@ -56,12 +65,124 @@ void readSwitch()
 }
 
 
+double readSensorDistance(int sensorNumber) // return inches from ultrasonic
+{
+  const long inchThreshold = 75.0;  // Maximum inch reading
+  const long betweenThresh = 3.0;   // Maximum difference from last reading 
+  long duration;                    // Used for distance measurement
+  long distanceInch;                // Distance in Inches
+  long distanceAve;                 // Average distance in Inches
+  // int prevInch;                  // Previous reading
 
-void readSensors(){
-  for(int x = 0; x < 12; x++){
-    sensorReadings[x] = sensors[x].read();
+  for (int i = 0; i < 4; i++) {
+    digitalWrite(trigPin[sensorNumber], LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin[sensorNumber], HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin[sensorNumber], LOW);
+    duration = pulseIn(echoPin[sensorNumber], HIGH);
+    distanceInch = duration*0.0133/2;
+
+    if (distanceInch < inchThreshold /*&& abs(distanceInch - prevInch) < betweenThresh */){ // Average of 4, if amount exceeds thresholds, ignore it before it gets averaged.
+      if (i == 3){
+        distanceAve = distanceAve + distanceInch;
+        distanceAve = distanceAve / 4; 
+        Serial.print("Distance: ");
+        Serial.print(distanceAve);
+        Serial.println(" inch");
+      } else {
+        distanceAve = distanceAve + distanceInch;
+      }
+      // prevInch = distanceInch;
+    } else {
+      Serial.println("Ignored Reading");
+      i = i - 1;
+    }
+    delay(60);
   }
+  return distanceAve;
 }
+
+// Code from Robot_turning for drive functions
+
+void forward(){ 
+  frontleft.write(0);
+  frontright.write(180);
+  backright.write(180);
+  backleft.write(0);
+  }
+
+  
+void backwards(){
+  backleft.write(180);
+  frontleft.write(180);
+  frontright.write(0);
+  backright.write(0);
+  }
+
+ void right(){
+  backleft.write(180);
+  frontleft.write(0);
+  frontright.write(0);
+  backright.write(180);
+ 
+ }
+  void left(){    
+  backleft.write(0);
+  frontleft.write(180);
+  frontright.write(180);
+  backright.write(0);
+ }
+
+ void clockwise(){
+  backleft.write(0);
+  frontleft.write(0);
+  frontright.write(0);
+  backright.write(0);
+  }
+
+ void counterclockwise(){
+  backleft.write(180); 
+  frontleft.write(180);
+  frontright.write(180);
+  backright.write(180);
+ }
+
+ void backrightstrafe(){
+  backright.write(0);
+  frontleft.write(180);
+  frontright.write(90);
+  backleft.write(90);
+ }
+ 
+ void backleftstrafe(){
+  backright.write(90);
+  frontleft.write(90);
+  frontright.write(0);
+  backleft.write(180);
+ }
+ 
+ void frontrightstrafe(){
+  backright.write(180);
+  frontleft.write(0);
+  frontright.write(90);
+  backleft.write(90);
+ }
+ 
+ void frontleftstrafe(){
+  backright.write(90);
+  frontleft.write(90);
+  frontright.write(180);
+  backleft.write(0);
+ }
+
+ void stopMoving(){
+  backright.write(90);
+  frontleft.write(90);
+  frontright.write(90);
+  backleft.write(90);
+ }
+
 
 void drive(int direction1)
 {
@@ -116,7 +237,7 @@ lcd.setCursor(0, 0);
   lcd.clear();
 }
 
-int setDirection() {
+int setDirection(int path) {
   if(bit == 2){
     if(path & 0b100){
       direction = 90.0;
@@ -140,16 +261,17 @@ int setDirection() {
   }
 }
 
-void goToPosition()
+void goToPosition(int path)
 {
-  if (direction == 90.0) // If button needed to push is the top one
+  int directionToGo = setDirection(path);
+  if (directionToGo == 90.0) // If button needed to push is the top one
   {
-    drive(2); // Go to the right
+    drive(6); // Go to the left
 
-    bool closeEnough
+    bool closeEnough = false;
     while (!closeEnough)
     {
-      float distanceToWall = readSensors(); // Determine the distance to the wall
+      double distanceToWall = readSensorDistance(LEFT_RIGHT); // Determine the distance to the wall
       if (distanceToWall <= 5.0) // If the distance to wall is less than the distance we want to stop at
       {
         closeEnough = true; 
@@ -157,14 +279,14 @@ void goToPosition()
     }
     drive(10); // Stop 
   }
-  else if (direction == -90.0) // If button needed to push is the bottom one
+  else if (directionToGo == -90.0) // If button needed to push is the bottom one
   {
-    drive(6); // Go to the left
+    drive(2); // Go to the right
 
-    bool closeEnough
+    bool closeEnough = false;
     while (!closeEnough)
     {
-      float distanceToWall = readSensors(); // Determine the distance to the wall
+      double distanceToWall = readSensorDistance(RIGHT_RIGHT); // Determine the distance to the wall
       if (distanceToWall <= 5.0) // If the distance to wall is less than the distance we want to stop at
       {
         closeEnough = true; 
@@ -176,14 +298,16 @@ void goToPosition()
 
 void moveToMiddle()
 {
-  if (direction == 90.0) // If button pushed is the top one
-  {
-    drive(6); // Go to the left
+    int directionToGo = setDirection(path);
 
-    bool closeEnough
+  if (directionToGo == 90.0) // If button pushed is the top one
+  {
+    drive(2); // Go to the right
+
+    bool closeEnough = false;
     while (!closeEnough)
     {
-      float distanceToMiddle = readSensors(); // Determine the distance to the middle
+      double distanceToMiddle = readSensorDistance(RIGHT_RIGHT); // Determine the distance to the middle
       if (distanceToMiddle <= 0.1) // If the distance to the middle is less than the distance we want to stop at
       {
         closeEnough = true; 
@@ -191,14 +315,14 @@ void moveToMiddle()
     }
     drive(10); // Stop 
   }
-  else if (direction == -90.0) // If button pushed is the bottom one
+  else if (directionToGo == -90.0) // If button pushed is the bottom one
   {
-    drive(2); // Go to the right
+    drive(6); // Go to the left
 
-    bool closeEnough
+    bool closeEnough = false;
     while (!closeEnough)
     {
-      float distanceToMiddle = readSensors(); // Determine the distance to the middle
+      double distanceToMiddle = readSensorDistance(LEFT_RIGHT); // Determine the distance to the middle
       if (distanceToMiddle <= 0.1) // If the distance to the middle is less than the distance we want to stop at
       {
         closeEnough = true; 
@@ -212,18 +336,16 @@ void moveDownRamp()
 {
   drive(0); // Go forward
 
-    bool closeEnough
+    bool closeEnough = false;
     while (!closeEnough)
     {
-      float distanceToDownRamp = readSensors(); // Determine the distance to down off the ramp
+      double distanceToDownRamp = readSensorDistance(FRONT_RIGHT); // Determine the distance to down off the ramp
       if (distanceToDownRamp <= 0.1) // If the distance to the down off the ramp is less than the distance we want to stop at
       {
         closeEnough = true; 
       }
     }
     drive(10); // Stop 
-  }
-  
 }
 
 int readSolarPanel()
@@ -298,7 +420,35 @@ void stepperMotorRotate()
   myStepper.step(stepsPerRevolution*5); // For full points, rotate between 4.75 and 5.24 times
 }
 
+void displayPath(){}
+void drive(){}
+void ramButton(){}
+void readPathValue(){}
+void goDownAndRightOrUpAndRight(){}
+void moveRight(){}
+void rotateToCorrectOrientation(){}
+void alignWithWedge(){}
+void wedgeServo(){}
+void moveTowardsWedge(){}
+void backOffWedge(){}
+void moveInwards(){}
+void alignWithCenter(){}
+void rotateServoCounterClockwise(){}
+void driveForwardALittleBit(){}
+void backOff(){}
+void rotateNinetyDegrees(){}
+void driveTowardsTheBooty(){}
+void lowerTheBootyMachine(){}
+void pullOnTheBooty(){}
+void inverseRotate90Degrees(){}
+void driveBackUpRamp(){}
+void readLastPartOfPath(){}
+void moveInThatDirection(){}
+void enjoyYourBooty(){}
+
 void loop() {
+
+int tempInt = 0; //Temporary int for readSensorDistance REMOVE LATER!!!
 
   switch(state){
     case(0):
@@ -314,7 +464,7 @@ void loop() {
       goToPosition(path); // Go either north or south based on path
       break;
      case(4):
-      readSensors(); //Get the values from each sensor and readjust motion path to line up with the button
+      readSensorDistance(tempInt); //Get the values from each sensor and readjust motion path to line up with the button
       break;
      case(5):
       drive(); //Drive towards the button (as determined by case 4)
@@ -326,13 +476,13 @@ void loop() {
       moveToMiddle(); //Move robot back towards the middle of the boat
       break;
      case(8):
-      readSensors(); // get values and readjust motion path to get to the middle
+      readSensorDistance(tempInt); // get values and readjust motion path to get to the middle
       break;
      case(9):
       moveDownRamp();  //move down the ramp
       break;
      case(10):
-      readSensors(); //Get our location in the map
+      readSensorDistance(tempInt); //Get our location in the map
       break;
      case(11):
       readPathValue(); // either up or down
@@ -341,7 +491,7 @@ void loop() {
       goDownAndRightOrUpAndRight();
       break;
      case(13):
-      readSensors(); //Keep a constant distance from the wall
+      readSensorDistance(tempInt); //Keep a constant distance from the wall
       break;
      case(14):
       moveRight(); //Move right until we are aligned with the wedge
@@ -365,7 +515,7 @@ void loop() {
       rotateToCorrectOrientation();
       break;
      case(21):
-      readSensors(); //Keep constant distance with wall
+      readSensorDistance(tempInt); //Keep constant distance with wall
       break;
      case(22): 
       moveRight();  //Along wall until we almost hit wall in front of us
@@ -407,7 +557,7 @@ void loop() {
       driveBackUpRamp();
       break;
      case(35):
-      readSensors(); // Know where on the boat we are
+      readSensorDistance(tempInt); // Know where on the boat we are
       break;
      case(36):
       readLastPartOfPath();
@@ -422,55 +572,6 @@ void loop() {
       
             
   }
-  int switchState = switchState();
-
-  int path = readSolarPanel();
-
-  writePathLCD(path);
-
-  //Based on first number of path, drive north or south
-  double direction1;
-  double speed1;
-  drive(direction1, speed1);
-
-  double distanceToWall = readSensorDistance();
-
-  
   
 }
-
-int switchState()
-{
-lcd.setCursor(0, 0);
-  if (!(digitalRead(switchStop)))
-    lcd.print("STOP");
-  else if (!(digitalRead(switchStart)))
-    lcd.print("START");
-  else
-    lcd.print("STANDBUYNOW");
-  delay(100);
-  lcd.clear();
-}
-
-int readSolarPanel()
-{
-  
-}
-
-void writePathLCD(int path)
-{
-  
-}
-
-void drive(double Direction, double Speed)
-{
-
-}
-
-double readSensorDistance()
-{
-  
-}
-
-
 
