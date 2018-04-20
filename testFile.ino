@@ -1,5 +1,87 @@
-#include <Servo.h>
+#include <ServoEx.h>
+
+//#include <Servo.h>
 #include "math.h"
+
+
+
+  // #define  0   //
+  // #define  1   //
+  #define DRIVE_SERVO_FL 2
+  #define DRIVE_SERVO_FR 3
+  #define DRIVE_SERVO_BL 4
+  #define DRIVE_SERVO_BR 5
+  #define LIFT_SERVO 6
+  #define PLACEHOLDER_SERVO 7
+/*  Need to be moved
+#define WEDGE_SERVO 6
+  #define FLAG_SERVO 7
+  #define LCD_P3 8
+  #define LCD_P2 9
+  #define LCD_P1 10
+  #define LCD_P0 11
+  #define LCD_EN 13
+  #define LCD_RS 12
+  */
+  #define STEPPER_P0 14
+  #define STEPPER_P1 15
+  #define STEPPER_P2 16
+  #define STEPPER_P3 17
+  #define ULTRASONIC_0_TRIG 18
+  #define ULTRASONIC_0_ECHO 19
+  #define ULTRASONIC_1_TRIG 20
+  #define ULTRASONIC_1_ECHO 21
+  #define ULTRASONIC_2_TRIG 22
+  #define ULTRASONIC_2_ECHO 23
+  #define ULTRASONIC_3_TRIG 24
+  #define ULTRASONIC_3_ECHO 25
+  #define ULTRASONIC_4_TRIG 26
+  #define ULTRASONIC_4_ECHO 27
+  #define ULTRASONIC_5_TRIG 28
+  #define ULTRASONIC_5_ECHO 29
+  #define ULTRASONIC_6_TRIG 30
+  #define ULTRASONIC_6_ECHO 31
+  #define ULTRASONIC_7_TRIG 32
+  #define ULTRASONIC_7_ECHO 33
+  // #define  34  //
+  // #define  35  //
+  // #define  36  //
+  // #define  37  //
+  // #define  38  //
+  // #define  39  //
+  // #define  40  //
+  // #define  41  //
+  // #define  42  //
+  // #define  43  //
+  // #define  44  //
+  // #define  45  //
+  // #define  46  //
+  // #define  47  //
+  // #define  48  //
+  // #define  49  //
+  // #define  50  //
+  // #define  51  //
+  // #define  52  //
+  // #define  53  //
+  #define SOLAR_CELL A0
+  #define SHARP_0 A1
+  #define SHARP_1 A2
+  #define SHARP_2 A3
+  #define SHARP_3 A4
+  // #define  A5  //
+  // #define  A6  //
+  // #define  A7  //
+  // #define  A8  //
+  // #define  A9  //
+  // #define  A10 //
+  // #define  A11 //
+  // #define  A12 //
+  // #define  A13 //
+  // #define  A14 //
+  // #define  A15 //
+
+  const int trigPin[8] = {18, 20, 22, 24, 26, 28, 30, 32};  // Pins for Ultrasonic Trigger
+  const int echoPin[8] = {19, 21, 23, 25, 27, 29, 31, 33};  // Pins for Ultrasoinc Echo
 
 
 const int  FRONT_LEFT  = 0;
@@ -16,10 +98,8 @@ static int locationB;
 static int locationC;
 
 static int state;
-const int irPin = 2;          // Pin for Solar Panel
+const int irPin = A2;          // Pin for Solar Panel
 
-const int trigPin[8] = {22, 24, 26, 28, 30, 32, 34, 36}; // Pins for Ultrasonic Trigger
-const int echoPin[8] = {23, 25, 27, 29, 31, 33, 35, 37}; // Pins for Ultrasoinc Echo
 const int switchStop =  0;    // Pin for Switch Stop
 const int switchStart = 1;   // Pin for Switch Start
 
@@ -27,12 +107,12 @@ int Ledpin=13;
 int secdelay=2000;
 int degreeIn;
 
-Servo backleft;
-Servo backright;
-Servo frontright;
-Servo frontleft; //Need to do frontLeft.attach(pin #) for all servos
-Servo StepperTurner;
-Servo wedger;
+ServoEx backleft;
+ServoEx backright;
+ServoEx frontright;
+ServoEx frontleft; //Need to do frontLeft.attach(pin #) for all servos
+ServoEx StepperTurner;
+ServoEx wedger;
 
 
 #include <Stepper.h>
@@ -263,10 +343,10 @@ void alignWithCenter(){ //prior to raising flag
 
 
 void servosetup(){
-  backright.attach(4);
-  backleft.attach(7);
-  frontright.attach(5);
-  frontleft.attach(6);
+  backright.attach(DRIVE_SERVO_BR);
+  backleft.attach(DRIVE_SERVO_BL);
+  frontright.attach(DRIVE_SERVO_FR);
+  frontleft.attach(DRIVE_SERVO_FL);
   StepperTurner.attach(20);
   wedger.attach(35);
 
@@ -288,17 +368,17 @@ void backwards(){
   }
 
  void right(){
-  backleft.write(60);
-  frontleft.write(120);
-  frontright.write(60);
-  backright.write(120);
+  backleft.write(180);
+  frontleft.write(0);
+  frontright.write(0);
+  backright.write(180);
 
  }
   void left(){
-  backleft.write(120);
-  frontleft.write(60);
-  frontright.write(60);
-  backright.write(120);
+  backleft.write(0);
+  frontleft.write(180);
+  frontright.write(180);
+  backright.write(0);
  }
 
  void clockwise(){
@@ -1017,6 +1097,73 @@ void wedgeAndOff() {
   wedger.write(900);
 }
 
+
+int readSolarPanel()
+{
+  const int irPin = A0;          // Pin for Solar Panel
+  const int threshold = 25;     // Vertical threshold for IR signal
+  const int horzThresh = 15;    // I have no idea what number this was supposed to be. It should be a number between the two possible edgeDistances.
+  const int sampleLength = 500; // Takes 500 samples       
+  bool vals[sampleLength];      // Array for input
+  int edgeList[10];             // Starting time of each of the bits
+  int pulseCount = 0;           // Number of rising edges detected. This number won't count the first one.
+  bool bitVal;                  // The value of the bit read.
+  int outVal = 0;
+
+  unsigned long startTime = millis();
+  const unsigned long timeWait = 200; // Changed according to rules, MAY BREAK CODE
+
+  // Wait for IR reading to exceed threshold or time to exceed time threshold
+  while (analogRead(irPin) <= threshold && millis() - startTime <= timeWait);
+  
+  if (millis() - startTime > timeWait) // If wait is too long, time out and return -1
+  {
+    return -1;
+  }
+
+  // Read IR data, threshold, and put into array
+  for (int i = 0; i < sampleLength; i++)
+  {
+    vals[i] = analogRead(irPin) > threshold;
+  }
+
+  // Pulse Counter
+  pulseCount = 0;
+  // Iterate over IR data array. Start at index 1, not index 0 to ignore first rising edge.
+  for (int i = 1; i < sampleLength; i++)
+  {
+    if (vals[i] > vals[i - 1]) // Detect a rising edge
+    {
+      // Register rising edge as a pulse
+      pulseCount++;
+      // Store sample number of pulse into edgeList
+      edgeList[pulseCount] = i;
+    }
+  }
+
+  if (pulseCount != 9) // Return -1 if wrong number of pulses detected
+  {
+    return -1;
+  }
+  for (int k = 1; k < 6; k++) // If any of the first five of eight bits read as one, it is in the waiting state
+  {
+    if (edgeList[k + 1] - edgeList[k] >= horzThresh) 
+    {
+      return -2;
+    }
+  }
+
+  // Iterate over the 3 bits in edgeList
+  for (int k = 6; k < 9; k++)
+  {
+    // Measure number of samples between rising edges, threshold, and store bit value
+    bitVal = edgeList[k + 1] - edgeList[k] >= horzThresh;
+    // Write bit value to outVal int
+    bitWrite(outVal, (2 - k) + 6, bitVal);
+  }
+  return outVal;
+}
+
 void printFunctions(){
   Serial.println("3: goToPosition");
   Serial.println("4: ramButton");
@@ -1056,12 +1203,12 @@ void interface(){
       //  Serial.print("Switch state is: ");
       //  Serial.println(state);
       //  break;
-      // case(1):
-      //  Serial.print("Value: ");
-      //  Serial.println(readSolarPanel());
-      //  break;
+       case(1):
+        Serial.print("Value: ");
+        Serial.println(readSolarPanel());
+        break;
       // case(2):
-      //  writePathLCD(path);
+      //  writePathLCD(path);11
       //  break;
       case(3):
         Serial.print("0 for up or 1 for down");
@@ -1130,7 +1277,7 @@ void interface(){
         y = Serial.parseInt();
         if(y>=0 && y <=10){
           drive(y);
-          delay(2000);
+          delay(5000);
           drive(10);
         }
         break;
@@ -1196,6 +1343,18 @@ void interface(){
         Serial.print("Push the wedge");
         wedgeAndOff();
         Serial.print("Wedge pushed");
+        break;
+        case(21):
+        pinMode(2,INPUT);
+        pinMode(3,INPUT);
+        pinMode(4,INPUT);
+        pinMode(5,INPUT);
+        break;
+        case(22):
+        pinMode(2,OUTPUT);
+        pinMode(3,OUTPUT);
+        pinMode(4,OUTPUT);
+        pinMode(5,OUTPUT);
         break;
         
     }
