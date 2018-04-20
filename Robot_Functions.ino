@@ -294,6 +294,57 @@ void moveDownRamp()
     
     drive(10); // Stop 
 }
+void alignWithWedge(int leftOrRightWedge) // 0 is left, 1 is right
+{
+  if (leftOrRightWedge == 0) //Left
+  {
+    while (readSensorDistance(LEFT_LEFT) < 5.5)
+    {
+      // Move farther away from the wall
+      drive(2); // Go right
+      delay(500);
+    }
+    drive(10); //Stop
+    while (readSensorDistance(FRONT_LEFT) > 36)
+    {
+      // Center the robot with the wedge
+      drive(0); // Go forward
+      delay(500);
+    }
+    drive(10); //Stop
+    while (readSensorDistance(FRONT_LEFT) < 34)
+    {
+      // Center the robot with the wedge
+      drive(4); // Go backward
+      delay(500);
+    }
+    drive(10); //Stop
+  }
+  else // Right
+  {
+    while (readSensorDistance(RIGHT_LEFT) < 5.5)
+    {
+      // Move farther away from the wall
+      drive(6); // Go left
+      delay(500);
+    }
+    drive(10); //Stop
+    while (readSensorDistance(FRONT_RIGHT) > 36)
+    {
+      // Center the robot with the wedge
+      drive(0); // Go forward
+      delay(500);
+    }
+    drive(10); //Stop
+    while (readSensorDistance(FRONT_RIGHT) < 34)
+    {
+      // Center the robot with the wedge
+      drive(4); // Go backward
+      delay(500);
+    }
+    drive(10); //Stop
+  }
+}
 void loop() {
   // put your main code here, to run repeatedly:
 
