@@ -286,7 +286,7 @@ void moveDownRamp()
     drive(0); // Go forward
     delay(10000); // Delay ten seconds. Random time I picked.
 
-    while (readSensorDistance(RIGHT_RIGHT) > 30) // While we are not reading the right wall
+    while (readSensorDistance(RIGHT_RIGHT) > 40) // While we are not reading the right wall
     {
        drive(0); // Keep going forward
        delay(1000);
@@ -337,6 +337,52 @@ void alignWithWedge(int leftOrRightWedge) // 0 is left, 1 is right
     }
     drive(10); //Stop
     while (readSensorDistance(FRONT_RIGHT) < 34)
+    {
+      // Center the robot with the wedge
+      drive(4); // Go backward
+      delay(500);
+    }
+    drive(10); //Stop
+    // Turn clockwise 180 degrees
+    drive(8);
+    delay(2000); // This needs to be adjusted to rotate 180
+    // Make sure it isn't crooked
+    bool closeEnough = false;
+    while (!closeEnough)
+    {
+      double distanceToWallLeft_right = readSensorDistance(LEFT_RIGHT); // Determine the distance to the wall
+      double distanceToWallLeft_left = readSensorDistance(LEFT_LEFT); // Determine the distance to the wall
+    
+      if (distanceToWallLeft_right - distanceToWallLeft_left > 1) // If we are crooked
+      {
+        drive(9); //CounterClockwise
+        
+      }
+      else if (distanceToWallLeft_right - distanceToWallLeft_left < -1) // If we are crooked
+      {
+        drive(8); //Clockwise
+      }
+      else
+      {
+        closeEnough = true; 
+      }
+    }
+    //Make sure we are still aligned with the wedge
+    while (readSensorDistance(LEFT_LEFT) < 5.5)
+    {
+      // Move farther away from the wall
+      drive(2); // Go right
+      delay(500);
+    }
+    drive(10); //Stop
+    while (readSensorDistance(FRONT_LEFT) > 36)
+    {
+      // Center the robot with the wedge
+      drive(0); // Go forward
+      delay(500);
+    }
+    drive(10); //Stop
+    while (readSensorDistance(FRONT_LEFT) < 34)
     {
       // Center the robot with the wedge
       drive(4); // Go backward
