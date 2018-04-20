@@ -195,16 +195,18 @@ void goToPosition(int path)
   }
   state = 3;
 }
+
 void ramButton(int directionToGo)
 {
   if (directionToGo == 90.0) // If button needed to push is the top one
   {
-    double distanceToWallLeft_right = readSensorDistance(LEFT_RIGHT); // Determine the distance to the wall
-    double distanceToWallLeft_left = readSensorDistance(LEFT_LEFT); // Determine the distance to the wall
     bool closeEnough = false;
 
     while (!closeEnough)
     {
+      double distanceToWallLeft_right = readSensorDistance(LEFT_RIGHT); // Determine the distance to the wall
+      double distanceToWallLeft_left = readSensorDistance(LEFT_LEFT); // Determine the distance to the wall
+    
       if (distanceToWallLeft_right - distanceToWallLeft_left > 1) // If we are crooked
       {
         drive(9); //CounterClockwise
@@ -226,12 +228,13 @@ void ramButton(int directionToGo)
   }
   else if (directionToGo == -90.0) // If button needed to push is the bottom one
   {
-    double distanceToWallRight_right = readSensorDistance(RIGHT_RIGHT); // Determine the distance to the wall
-    double distanceToWallRight_left = readSensorDistance(RIGHT_LEFT); // Determine the distance to the wall
     bool closeEnough = false;
 
     while (!closeEnough)
     {
+      double distanceToWallRight_right = readSensorDistance(RIGHT_RIGHT); // Determine the distance to the wall
+      double distanceToWallRight_left = readSensorDistance(RIGHT_LEFT); // Determine the distance to the wall
+    
       if (distanceToWallRight_right - distanceToWallRight_left > 1) // If we are crooked
       {
         drive(8); //Clockwise
@@ -257,7 +260,40 @@ void stepperMotorRotate()
   myStepper.step(stepsPerRevolution*5); // For full points, rotate between 4.75 and 5.24 times
   state = 20;
 }
+void moveDownRamp()
+{
+    bool closeEnough = false;
 
+    while (!closeEnough)
+    {
+      double distanceToWallBack_right = readSensorDistance(BACK_RIGHT); // Determine the distance to the wall
+      double distanceToWallBack_left = readSensorDistance(BACK_LEFT); // Determine the distance to the wall
+    
+      if (distanceToWallBack_right - distanceToWallBack_left > 1) // If we are crooked
+      {
+        drive(8); //Clockwise
+      }
+      else if (distanceToWallBack_right - distanceToWallBack_left < -1) // If we are crooked
+      {
+        drive(9); //CounterClockwise
+      }
+      else
+      {
+        closeEnough = true; 
+      }
+    }
+  
+    drive(0); // Go forward
+    delay(10000); // Delay ten seconds. Random time I picked.
+
+    while (readSensorDistance(RIGHT_RIGHT) > 30) // While we are not reading the right wall
+    {
+       drive(0); // Keep going forward
+       delay(1000);
+    }
+    
+    drive(10); // Stop 
+}
 void loop() {
   // put your main code here, to run repeatedly:
 
