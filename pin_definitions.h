@@ -3,21 +3,22 @@
 
   // #define  0   //
   // #define  1   //
-  // #define  2   //
-  // #define  3   //
-  // #define  4   //
-  // #define  5   //
-  // #define  6   //
-  // #define  7   //
-  // #define  8   //
-  // #define  9   //
-  // #define  10  //
-  // #define  11  //
-  // #define  12  //
-  // #define  14  //
-  // #define  15  //
-  // #define  16  //
-  // #define  17  //
+  #define DRIVE_SERVO_FL 2
+  #define DRIVE_SERVO_FR 3
+  #define DRIVE_SERVO_BL 4
+  #define DRIVE_SERVO_BR 5
+  #define WEDGE_SERVO 6
+  #define FLAG_SERVO 7
+  #define LCD_P3 8
+  #define LCD_P2 9
+  #define LCD_P1 10
+  #define LCD_P0 11
+  #define LCD_EN 13
+  #define LCD_RS 12  //
+  #define STEPPER_P0 14  //
+  #define STEPPER_P1 15  //
+  #define STEPPER_P2 16  //
+  #define STEPPER_P3 17  //
   // #define  18  //
   // #define  19  //
   // #define  20  //
@@ -54,7 +55,7 @@
   // #define  51  //
   // #define  52  //
   // #define  53  //
-  // #define  A0  //
+  #define SOLAR_CELL A0
   // #define  A1  //
   // #define  A2  //
   // #define  A3  //
