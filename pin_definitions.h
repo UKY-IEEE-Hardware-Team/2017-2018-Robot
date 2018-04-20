@@ -7,7 +7,10 @@
   #define DRIVE_SERVO_FR 3
   #define DRIVE_SERVO_BL 4
   #define DRIVE_SERVO_BR 5
-  #define WEDGE_SERVO 6
+  #define LIFT_SERVO 6
+  #define PLACEHOLDER_SERVO 7
+/*  Need to be moved
+#define WEDGE_SERVO 6
   #define FLAG_SERVO 7
   #define LCD_P3 8
   #define LCD_P2 9
@@ -15,6 +18,7 @@
   #define LCD_P0 11
   #define LCD_EN 13
   #define LCD_RS 12
+  */
   #define STEPPER_P0 14
   #define STEPPER_P1 15
   #define STEPPER_P2 16
