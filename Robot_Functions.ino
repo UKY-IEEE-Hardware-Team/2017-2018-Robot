@@ -391,6 +391,66 @@ void alignWithWedge(int leftOrRightWedge) // 0 is left, 1 is right
     drive(10); //Stop
   }
 }
+void driveBackUpRamp()
+{
+  // Center the robot with the ramp
+  while (readSensorDistance(BACK_RIGHT) > 18)
+  {
+    drive(4); // Go bacckward
+    delay(500);
+  }
+  drive(10); // Stop
+  while (readSensorDistance(FRONT_RIGHT) > 18)
+  {
+    drive(0); // Go forward
+    delay(500);
+  }
+  drive(10); // Stop
+  drive(2); // Go right up the ramp
+  delay(10000); // Drive for 10 seconds. Should be adjusted
+  // Once up the ramp, drive to the middle
+  while(readSensorDistance(RIGHT_RIGHT) > 12)
+  {
+    drive(2); // Go right
+    delay(500);
+  }
+  drive(10); // Stop
+}
+void moveTowardsC(int path)
+{
+  int directionToGo = setDirection(path);
+  if (directionToGo == 90.0) // If button needed to push is the top one
+  {
+    drive(4); // Go backward
+
+    bool closeEnough = false;
+    while (!closeEnough)
+    {
+      double distanceToWall = readSensorDistance(BACK_RIGHT); // Determine the distance to the wall
+      if (distanceToWall <= 4.0) // If the distance to wall is less than the distance we want to stop at
+      {
+        closeEnough = true; 
+      }
+    }
+    drive(10); // Stop 
+    ramButton(directionToGo);
+  }
+  else if (directionToGo == -90.0) // If button needed to push is the bottom one
+  {
+    drive(0); // Go forward
+    bool closeEnough = false;
+    while (!closeEnough)
+    {
+      double distanceToWall = readSensorDistance(FRONT_RIGHT); // Determine the distance to the wall
+      if (distanceToWall <= 4.0) // If the distance to wall is less than the distance we want to stop at
+      {
+        closeEnough = true; 
+      }
+    }
+    drive(10); // Stop 
+    ramButton(directionToGo);
+  }
+}
 void loop() {
   // put your main code here, to run repeatedly:
 
