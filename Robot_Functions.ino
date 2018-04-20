@@ -451,6 +451,34 @@ void moveTowardsC(int path)
     ramButton(directionToGo);
   }
 }
+void driveTowardsTheBooty()
+{
+  while (readSensorDistance(LEFT_RIGHT) < 12) // Drive almost to the box
+  {
+    drive(2); // Go right
+    delay(500);
+  }
+  drive(10); // Stop 
+  // Center the robot on the box
+  while (readSensorDistance(BACK_RIGHT) < 16)
+  {
+    drive(0); // Go forward
+    delay(500);
+  }
+  drive(10); // Stop
+  while (readSensorDistance(FRONT_RIGHT) < 16)
+  {
+    drive(4); // Go backward
+    delay(500);
+  }
+  drive(10); // Stop
+  while (readSensorDistance(LEFT_RIGHT) < 17.5) // Drive over the box
+  {
+    drive(2); // Go right
+    delay(500);
+  }
+  drive(10); // Stop 
+}
 void loop() {
   // put your main code here, to run repeatedly:
 
