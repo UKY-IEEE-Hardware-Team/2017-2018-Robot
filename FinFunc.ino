@@ -28,6 +28,7 @@ void setup() {
   // put your setup code here, to run once:
   pinMode(switchStop, INPUT_PULLUP);  // Initialize Switch Stop
   pinMode(switchStart, INPUT_PULLUP); // Initialize Switch Start
+  Serial.begin(250000);
   lcd.begin(16, 2);                   // Initialize LCD
   wedger.attach(35);
   for (int i = 0; i < 8; i++) {
@@ -38,14 +39,13 @@ void setup() {
 
 int path = -1;
 void loop() {
-  if (path == -1 || path == -2){
-    path = readSolarPanel();
-    writePathLCD(path);
-  }
+  //if (path == -1 || path == -2){
+    path = readSolarPanel(calibSolar());
+    Serial.println(path);
+  //}
 }
 
 float sensorReadings[12];
-Sensor sensors[12]; //Make this class later
 
 void readSwitch()
 {
@@ -57,10 +57,27 @@ void readSwitch()
     state = 0; //Do nothing
 }
 
+int calibSolar() {
+  unsigned long startTime = millis();
+  unsigned long timeWait = 500;
+  int maxRead = 0;
+  int minRead = 1023;
+  int solarRead = 0;
+  
+  while (millis() - startTime <= timeWait) {
+    solarRead = analogRead(irPin);
+    maxRead = max(maxRead, solarRead);
+    minRead = min(minRead, solarRead);
+  }
+  Serial.print("Threshold ");
+  Serial.println((maxRead + minRead) / 2);
+  return ((maxRead + minRead) / 2);
+}
 
-int readSolarPanel()
+
+int readSolarPanel(int threshold)
 {
-  const int threshold = 25;     // Vertical threshold for IR signal
+  //int threshold = 25;     // Vertical threshold for IR signal
   const int horzThresh = 15;    // I have no idea what number this was supposed to be. It should be a number between the two possible edgeDistances.
   const int sampleLength = 500; // Takes 500 samples       
   bool vals[sampleLength];      // Array for input
@@ -73,7 +90,10 @@ int readSolarPanel()
   const unsigned long timeWait = 200; // Changed according to rules, MAY BREAK CODE
 
   // Wait for IR reading to exceed threshold or time to exceed time threshold
-  while (analogRead(irPin) <= threshold && millis() - startTime <= timeWait);
+  while (analogRead(irPin) <= threshold && millis() - startTime <= timeWait) {
+    //Serial.print("IR Pin Reading: ");
+    //Serial.println(analogRead(irPin));
+  }
   
   if (millis() - startTime > timeWait) // If wait is too long, time out and return -1
   {
@@ -146,10 +166,9 @@ void writePathLCD(int path)
   } else if (path == -2) {
     lcd.print("Waiting");
   } else {
-    lcd.print("Path: ");
-    lcd.print(bitRead(path, 5));
-    lcd.print(bitRead(path, 6));
-    lcd.print(bitRead(path, 7));
+    lcd.print("Path:   ");
+    lcd.print(path + 1);
+    lcd.print(".");
   }
 }
 
@@ -195,6 +214,8 @@ double readSharpDistance(int pinNumber)
   double distanceHistory[5];
   double distanceAverage;
   double distanceChartedTwo = 0;
+  double reading;
+  int index;
   double lookUpTableTwo[23] = {  600,   524,   418,   341,   290,   243,   216,   192,   168,   156,    136,    115,    107,     91,     83,     75,     66,     62,     54,     50,     46,     42,     38}; 
 
   for(int i = 0; i < 5; i++) {
@@ -206,15 +227,15 @@ double readSharpDistance(int pinNumber)
     if (index == 22) {
       distanceChartedTwo = 949.2 * pow(reading, -1.01);
     } else if (index == 0) {
-      distanceCharted = 0.9;
+      distanceChartedTwo = 0.9;
     } else {
-      distanceCharted = ((float(index) - 1)/ 2) + 1 + .5 * (lookUpTableTwo[index - 1] - reading) / ((lookUpTableTwo[index - 1] - lookUpTableTwo[index]));
+      distanceChartedTwo = ((float(index) - 1)/ 2) + 1 + .5 * (lookUpTableTwo[index - 1] - reading) / ((lookUpTableTwo[index - 1] - lookUpTableTwo[index]));
     }
     
     for(int i = 4; i > 0; i--) {
       distanceHistory[i] = distanceHistory[i-1];
     }
-    distanceHistory[0] = distanceCharted;
+    distanceHistory[0] = distanceChartedTwo;
     delay( 100 );
   }
   for(int i = 0; i < 5; i++) {
@@ -222,12 +243,12 @@ double readSharpDistance(int pinNumber)
   }
   distanceAverage = distanceAverage / 5.0;
   
-  Serial.print(distanceCharted);
+  Serial.print(distanceChartedTwo);
   Serial.print("\t");
   Serial.println(distanceAverage);
   return distanceAverage;
 }
-
+/*
 void goDownAndRightOrUpAndRight(int path) {
   int sensorClose = -1;
   double sensorDiff = 0;
@@ -349,7 +370,8 @@ void goDownAndRightOrUpAndRight(int path) {
     drive(10); 
   }
 }
-
+*/
+/*
 void wedgeAndOff() {
   // This should move wedger to disengaged position (Should already be here)
   wedger.write(900);
@@ -413,4 +435,4 @@ void wedgeAndOff() {
   // Disengage Wedge
   wedger.write(900);
 }
-
+*/
