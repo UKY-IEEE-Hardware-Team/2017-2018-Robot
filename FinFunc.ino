@@ -11,6 +11,15 @@
 #define RIGHT_LEFT  6
 #define FRONT_RIGHT 7 
 
+// defines for setting and clearing register bits
+#ifndef cbi
+#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
+#endif
+#ifndef sbi
+#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
+#endif
+
+
 LiquidCrystal lcd(8, 9, 0, 1, 2, 3);  // Initialize LCD
 
 const int switchStop =  0;    // Pin for Switch Stop
@@ -35,13 +44,25 @@ void setup() {
     pinMode(trigPin[i], OUTPUT);      // Initialize 8 Trig Pins
     pinMode(echoPin[i], INPUT);       // Initialize 8 Echo Pins
   }
+  sbi(ADCSRA,ADPS2) ;
+  sbi(ADCSRA,ADPS1) ;
+  cbi(ADCSRA,ADPS0) ;
 }
 
+bool solar = 0;
 int path = -1;
 void loop() {
   //if (path == -1 || path == -2){
+  if(solar){
     path = readSolarPanel(calibSolar());
     Serial.println(path);
+  } else {
+    Serial.println();
+    Serial.println("-----------------------------------------------------------");
+    path = readQRIR(calibQRIR());
+    Serial.print("Path: ");
+    Serial.println(path);
+  }
   //}
 }
 
@@ -74,25 +95,54 @@ int calibSolar() {
   return ((maxRead + minRead) / 2);
 }
 
+int calibQRIR() {
+  unsigned long startTime = millis();
+  unsigned long timeWait = 500;
+  int maxRead = 0;
+  int minRead = 255;
+  int irRead = 0;
+  
+  while (millis() - startTime <= timeWait) {
+    irRead = (analogRead(irPin) >> 2);
+    maxRead = max(maxRead, irRead);
+    minRead = min(minRead, irRead);
+  }
+  Serial.print("Max Read: ");
+  Serial.print(maxRead);
+  Serial.print("   Min Read: ");
+  Serial.print(minRead);
+  Serial.print("   Threshold: ");
+  Serial.println((maxRead + minRead) / 2);
+  return ((maxRead + minRead) / 2);
+}
+
 
 int readSolarPanel(int threshold)
 {
   //int threshold = 25;     // Vertical threshold for IR signal
   const int horzThresh = 15;    // I have no idea what number this was supposed to be. It should be a number between the two possible edgeDistances.
-  const int sampleLength = 500; // Takes 500 samples       
+  const int sampleLength = 4000; // Takes 1000 samples       
   bool vals[sampleLength];      // Array for input
   int edgeList[10];             // Starting time of each of the bits
   int pulseCount = 0;           // Number of rising edges detected. This number won't count the first one.
   bool bitVal;                  // The value of the bit read.
   int outVal = 0;
-
+  
+  int readingArray[sampleLength];
+  
   unsigned long startTime = millis();
   const unsigned long timeWait = 200; // Changed according to rules, MAY BREAK CODE
 
   // Wait for IR reading to exceed threshold or time to exceed time threshold
-  while (analogRead(irPin) <= threshold && millis() - startTime <= timeWait) {
-    //Serial.print("IR Pin Reading: ");
-    //Serial.println(analogRead(irPin));
+  while (/*analogRead(irPin) <= threshold && millis() - startTime <= timeWait*/1) {
+    for(int i = 0; i < 1000; i++){
+      readingArray[i] = analogRead(irPin);
+    }
+    
+    for (int i = 0; i < 1000; i++) {
+      Serial.println(readingArray[i]);
+    }
+    delay(500);
   }
   
   if (millis() - startTime > timeWait) // If wait is too long, time out and return -1
@@ -142,6 +192,120 @@ int readSolarPanel(int threshold)
   }
   return outVal;
 }
+
+
+
+
+
+
+
+int readQRIR(int threshold)
+{
+  //int threshold = 25;     // Vertical threshold for IR signal
+  const int horzThresh = 30;     //15;    // I have no idea what number this was supposed to be. It should be a number between the two possible edgeDistances.
+  const int sampleLength = 4000; // Takes 500 samples       
+  bool vals[sampleLength];      // Array for input
+  int edgeList[20];             // Starting time of each of the bits
+  int goodList[9];              // Array that has the good data plus end bit
+  int pulseCount = 0;           // Number of rising edges detected. This number won't count the first one.
+  bool bitVal;                  // The value of the bit read.
+  int outVal = 0;
+  
+  int readingArray[sampleLength];
+  
+  unsigned long startTime = millis();
+  const unsigned long timeWait = 200; // Changed according to rules, MAY BREAK CODE
+
+  // Wait for IR reading to exceed threshold or time to exceed time threshold
+  
+  if(1){ // 1 = run case     0 = test case
+    while (analogRead(irPin) >= threshold && millis() - startTime <= timeWait) {
+        
+    }
+  } else {
+    while(1) {
+      for(int i = 0; i < 1000; i++){
+        readingArray[i] = analogRead(irPin);
+      }
+    
+      for (int i = 0; i < 1000; i++) {
+        Serial.println(readingArray[i]);
+      }
+    }
+  }
+  if (millis() - startTime > timeWait) // If wait is too long, time out and return -1
+  {
+    Serial.println("TIMED OUT");
+    return -1;
+  }
+
+  // Read IR data, threshold, and put into array
+  for (int i = 0; i < sampleLength; i++)
+  {
+    vals[i] = analogRead(irPin) < threshold;
+  }
+
+  // Pulse Counter
+  pulseCount = 0;
+  // Iterate over IR data array. Start at index 1, not index 0 to ignore first rising edge.
+  for (int i = 1; i < sampleLength; i++)
+  {
+    if (vals[i] > vals[i - 1]) // Detect a rising edge
+    {
+      // Register rising edge as a pulse
+      pulseCount++;
+      // Store sample number of pulse into edgeList
+      edgeList[pulseCount] = i;
+    }
+  }
+  
+  if (pulseCount >= 10) {
+    for(int i = 1; i < 10; i++) {
+      goodList[i-1] = edgeList[i];
+    }
+    /*
+    Serial.print("Pulses found:   ");
+    Serial.print(pulseCount);
+    Serial.print("   ");
+    Serial.print("Pulses were:    ");
+    for (int i = 0; i < min(20, pulseCount); i++) {
+      Serial.print(edgeList[i]);
+      Serial.print(", ");
+    }
+    Serial.println();
+    */
+  } else { // Return -1 if wrong number of pulses detected
+    Serial.println("WRONG NUMBER OF PULSES");
+    delayMicroseconds(35);
+    return -1;
+  }
+  for (int k = 0; k < 5; k++) // If any of the first five of eight bits read as one, it is in the waiting state
+  {
+    if (goodList[k + 1] - goodList[k] >= horzThresh) 
+    {
+      return -2;
+    }
+  }
+
+  // Iterate over the 3 bits in edgeList
+  for (int k = 5; k < 8; k++)
+  {
+    // Measure number of samples between rising edges, threshold, and store bit value
+    bitVal = edgeList[k + 1] - edgeList[k] >= horzThresh;
+    // Write bit value to outVal int
+    bitWrite(outVal, 7 - k, bitVal);
+  }
+  return outVal;
+}
+
+
+
+
+
+
+
+
+
 
 
 int switchState()
